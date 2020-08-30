@@ -1,3 +1,4 @@
-# coq入门指北- Software-fundations(I)
+# coq入门指北
 ---
-# 《soft》
+# Software-fundations(I)
+
