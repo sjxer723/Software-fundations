@@ -799,13 +799,13 @@ Fixpoint normalize (b:bin): bin :=
     end
   |B b' => B(normalize b')
   end.
-
+Eval compute in (A(A Z)).
 Lemma bin_nat:forall n:nat, normalize(A (nat_to_bin n)) =nat_to_bin(n+n).
 Proof.
   intros n.
   induction n.
   -simpl. reflexivity.
-  -
+Admitted.
 Theorem normalize_eq_bin_nat_bin:forall b:bin, normalize b =nat_to_bin( bin_to_nat b).
 Proof.
   intros b.
@@ -814,7 +814,7 @@ Proof.
   -destruct b.
     +simpl. reflexivity.
     +simpl. rewrite <- plus_n_O. rewrite <- plus_n_O.
-    +
+Admitted.
 (* Do not modify the following line: *)
 Definition manual_grade_for_binary_inverse_c : option (nat*string) := None.
 (** [] *)
