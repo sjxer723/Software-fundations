@@ -577,7 +577,15 @@ Theorem subseq_trans : forall (l1 l2 l3 : list nat),
   subseq l1 l3.
 Proof.
   intros.
-  Abort.
+  generalize dependent l1.
+  induction H0.
+  -intros. inversion H;subst. apply emp_l.
+  -intros. apply ll1. apply (IHsubseq l0). apply H.
+  -intros. inversion H.
+   +apply emp_l.
+   +subst. apply ll1. apply (IHsubseq l0). apply H3.
+   +subst. apply ll2. apply (IHsubseq l3). apply H3.
+Qed.
 
 Inductive R : nat -> list nat -> Prop :=
   | c1 : R 0 []
@@ -799,7 +807,35 @@ Proof.
    +simpl. reflexivity.
    +reflexivity.
    +simpl. apply andb_true_iff. split.
-    * apply IHre1. destruct H as [s H1]. exists s. Abort. 
+    * apply IHre1. destruct H as [s H1].
+    inversion H1;subst. exists s1. apply H3.
+    * apply IHre2. destruct H as [s H1].
+    inversion H1;subst. exists s2. apply H4.
+   +simpl. apply orb_true_iff.
+    destruct H as [s H1]. inversion H1;subst.
+    *left. apply IHre1. exists s. apply H2.
+    *right. apply IHre2. exists s. apply H0.
+   +reflexivity.
+ -intros H. induction re.
+  +inversion H.
+  +exists []. apply MEmpty.
+  +exists [t]. apply MChar.
+  +inversion H. apply andb_true_iff in H1. 
+  destruct H1 as [H2 H3].
+  apply IHre1 in H2. apply IHre2 in H3.
+  destruct H2 as [s1 H2']. destruct H3 as [s2 H3'].
+  exists (s1++s2).
+  apply MApp.
+  *apply H2'.
+  *apply H3'.
+  +inversion H. apply orb_true_iff in H1.
+   destruct H1 as [H2 | H3].
+   *apply IHre1 in H2. destruct H2 as [s' H2'].
+   exists s'. apply MUnionL. apply H2'.
+   *apply IHre2 in H3. destruct H3 as [s' H3'].
+   exists s'. apply MUnionR. apply H3'.
+  +exists []. apply MStar0.
+Qed.
 (** [] *)
 
 (* ================================================================= *)
@@ -1189,16 +1225,7 @@ Qed.
 Definition manual_grade_for_filter_challenge : option (nat*string) := None.
 (** [] *)
 
-(** **** Exercise: 5 stars, advanced, optional (filter_challenge_2)  
-
-    A different way to characterize the behavior of [filter] goes like
-    this: Among all subsequences of [l] with the property that [test]
-    evaluates to [true] on all their members, [filter test l] is the
-    longest.  Formalize this claim and prove it. *)
-
-(* FILL IN HERE 
-
-    [] *)
+(** **** Exercise: 5 stars, advanced, optional (filter_challenge_2) *)
 
 Theorem filter_behavior: forall X (l sl:list X)(test:X -> bool),
   subseq sl l ->
@@ -1249,16 +1276,6 @@ Qed.
 Definition manual_grade_for_pal_pal_app_rev_pal_rev : option (nat*string) := None.
 (** [] *)
 
-(** **** Exercise: 5 stars, standard, optional (palindrome_converse)  
-     forall l, l = rev l -> pal l.
-*)
-
-Theorem rev_pal :forall X (l:list X),
-  l= rev l ->
-  pal l.
-Proof.
-  intros.
-  Abort.
 (** **** Exercise: 4 stars, advanced, optional (NoDup) **)
 
 (** Next, use [In] to define an inductive proposition [NoDup X
@@ -1267,13 +1284,18 @@ Proof.
     other.  For example, [NoDup nat [1;2;3;4]] and [NoDup
     bool []] should be provable, while [NoDup nat [1;2;1]] and
     [NoDup bool [true;true]] should not be.  *)
+Inductive disjoint {X:Type}: list X->list X->Prop :=
+  |emp_emp: disjoint [] []
+  |app_r (x:X) l1 l2 (H: (In x l1)=False):disjoint l1 (x::l2)
+  |app_l (x:X) l1 l2 (H: (In x l2)=False):disjoint (x::l1) l2.
 
-(* FILL IN HERE *)
+Inductive NoDup {X:Type}:list X->Prop:=
+  |emp: NoDup []
+  |app(x:X) l (H: disjoint l [x])(H': NoDup l):NoDup (x::l).
 
 (** Finally, state and prove one or more interesting theorems relating
     [disjoint], [NoDup] and [++] (list append).  *)
 
-(* FILL IN HERE *)
 
 (* Do not modify the following line: *)
 Definition manual_grade_for_NoDup_disjoint_etc : option (nat*string) := None.
@@ -1302,6 +1324,7 @@ Inductive repeats {X:Type} : list X -> Prop :=
   |repeats_start n l(H1: In n l) : repeats (n::l)
   |repeats_add n l (H2: repeats l) : repeats (n::l).
 
+  
 Theorem pigeonhole_principle: forall (X:Type) (l1  l2:list X),
    excluded_middle ->
    (forall x, In x l1 -> In x l2) ->
@@ -1313,7 +1336,45 @@ Proof.
    -intros.
     assert(H2: (In x l1')\/ ~(In x l1')). { apply H. }
     destruct H2 as [Hl1 | Hl2].
-    +Abort.
+    +apply (repeats_start x). apply Hl1.
+    +apply repeats_add. 
+    assert(H': In x l2). {
+      apply (H0 x).
+      simpl. left. reflexivity.
+    }
+    apply in_split in H'.
+    destruct H' as [l1 [l3 H2]].
+    apply IHl1' with (l1++l3).
+    *apply H.
+    *intros x0. intros.
+      simpl in H0. subst.
+      assert(H2: x<>x0). {
+        unfold not.
+        intros. subst.
+        unfold not in Hl2.
+        apply Hl2 in H3.
+        apply H3.
+        }
+     assert(H4:x=x0\/In x0 l1'). {right. apply H3. }
+     apply H0 in H4.
+     apply In_app_iff in H4.
+     apply In_app_iff.
+     destruct H4 as [H4' | H5].
+     {left. apply H4'. }
+     {right. simpl in H5.
+      destruct H5 as [H6 | H7].
+      {unfold not in H2. apply H2 in H6. inversion H6. }
+      {apply H7. } }
+    * rewrite H2 in H1.
+      rewrite app_length.
+      rewrite app_length in H1.
+      simpl in H1.
+      rewrite plus_comm in H1. simpl in H1.
+      apply le_pred in H1. simpl in H1.
+      rewrite plus_comm.
+      apply H1.
+Qed.
+    
 (* Do not modify the following line: *)
 Definition manual_grade_for_check_repeats : option (nat*string) := None.
 
@@ -1453,14 +1514,35 @@ Proof.
   intros. split.
   -intros. 
     remember (Star re) as re'.
+    remember (a::s) as s'.
     induction H.
     + discriminate Heqre'.
     + discriminate Heqre'.
     + inversion Heqre'.
     + inversion Heqre'.
     + inversion Heqre'.
-    + inversion Heqre'. Abort.
-  
+    + inversion Heqs'.
+    + inversion Heqre';subst. clear Heqre'. 
+      induction s1.
+      *simpl in Heqs'.
+      assert(H': Star re=Star re). {reflexivity. }
+      apply IHexp_match2 in H'.
+      2: {apply Heqs'. }
+      destruct H' as [s0 [s1 H1]].
+      exists s0. exists s1. apply H1.
+      *simpl in Heqs'. inversion Heqs';subst.
+      exists s1. exists s2. split.
+       { reflexivity. }
+       { split. {apply H. }
+        {apply H0. } }
+ -intros. destruct H as [s0 [s1 [H1 [H2 H3]]]].
+  rewrite H1. 
+  assert(H:(a::s0)++s1=a::s0++s1). {simpl. reflexivity. }
+  rewrite <- H.
+  apply MStarApp. 
+  +apply H2.
+  +apply H3.
+Qed.
 (** [] *)
 
 Definition refl_matches_eps m :=
@@ -1470,14 +1552,69 @@ Definition refl_matches_eps m :=
 
     Complete the definition of [match_eps] so that it tests if a given
     regex matches the empty string: *)
-Fixpoint match_eps (re: @reg_exp ascii) : bool
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
+Fixpoint match_eps (re: @reg_exp ascii) : bool:=
+ match re with
+  | EmptySet => false
+  | EmptyStr => true
+  | Char _ => false
+  | App re1 re2 =>(match_eps re1)&&(match_eps re2)
+  | Union re1 re2 =>(match_eps re1)||(match_eps re2)
+  | Star _ => true
+  end.
 (** [] *)
 
-(** **** Exercise: 3 stars, standard, optional (match_eps_refl)  *)
+(** **** Exercise: 3 stars, standard, optSional (match_eps_refl)  *)
 Lemma match_eps_refl : refl_matches_eps match_eps.
 Proof.
-  (* FILL IN HERE *) Admitted.
+  unfold refl_matches_eps.
+  intros. 
+  apply iff_reflect. split.
+  -induction re;intros. 
+   +inversion H.
+   +reflexivity.
+   +inversion H. 
+   +simpl. inversion H;subst. 
+    assert(H':s1=[]). {
+      destruct s1. 
+      {reflexivity. }
+      {discriminate H1. }
+     }
+    assert(H1':s2=[]). {
+      rewrite H' in H1.
+      simpl in H1.
+      apply H1.
+     }
+   apply andb_true_iff. split.
+    *apply IHre1. 
+    subst. apply H3.
+    *apply IHre2.
+    subst. apply H4.
+   +simpl. apply orb_true_iff. inversion H;subst.  
+    *apply IHre1 in H2. left. apply H2.
+    *apply IHre2 in H1. right. apply H1.
+   +reflexivity.
+ -intros.
+  induction re.
+  +discriminate H. 
+  +apply MEmpty.
+  +discriminate H. 
+  +inversion H. apply andb_true_iff in H1.
+   destruct H1 as [H2 H3]. 
+   apply IHre1 in H2. 
+   apply IHre2 in H3.
+   assert(H':[]++[] =~App re1 re2). {apply MApp.
+   apply H2. apply H3.
+   }
+   simpl in H'.
+   apply H'.
+  +inversion H. apply orb_true_iff in H1.
+   destruct H1 as [H2 | H3].
+   *apply MUnionL.
+    apply IHre1. apply H2.
+   *apply MUnionR.
+    apply IHre2. apply H3.
+  +apply MStar0.
+Qed.
 (** [] *)
 
 Definition is_der re (a : ascii) re' :=
@@ -1486,13 +1623,13 @@ Definition is_der re (a : ascii) re' :=
 Definition derives d := forall a re, is_der re a (d a re).
 
 (** **** Exercise: 3 stars, standard, optional (derive) *)
-Fixpoint derive (a : ascii) (re : @reg_exp ascii) : @reg_exp ascii
-  (* REPLACE THIS LINE WITH ":= _your_definition_ ." *). Admitted.
-(** [] *)
+Fixpoint derive (a : ascii) (re : @reg_exp ascii) : @reg_exp ascii.
+Admitted.
 Example c := ascii_of_nat 99.
 Example d := ascii_of_nat 100.
 
 (** "c" =~ EmptySet: *)
+(*
 Example test_der0 : match_eps (derive c (EmptySet)) = false.
 Proof. reflexivity. Qed.
 
@@ -1524,7 +1661,7 @@ Proof. reflexivity. Qed.
 (** "cd" =~ App (Char d) (Char c): *)
 Example test_der7 :
   match_eps (derive d (derive c (App (Char d) (Char c)))) = false.
-Proof. reflexivity. Qed.
+Proof. reflexivity. Qed.*)
 
 (** **** Exercise: 4 stars, standard, optional (derive_corr) **)
 Lemma derive_corr : derives derive.
