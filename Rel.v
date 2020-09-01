@@ -307,10 +307,14 @@ Lemma rsc_trans :
       clos_refl_trans_1n R x z.
 Proof.
   intros.
-  apply rt1n_trans with y.
-  2:{ apply H0. }
-  inversion H.
-  -Admitted.
+  induction H.
+  -apply H0.
+  -apply IHclos_refl_trans_1n in H0.
+   apply (rt1n_trans R x y z).
+   +apply Hxy.
+   +apply H0.
+Qed.
+  
 (** [] *)
 
 (** **** Exercise: 3 stars, standard, optional (rtc_rsc_coincide)  *)
