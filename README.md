@@ -1,4 +1,4 @@
-# Coq入门指北
+# The solution of 《software-fundations I》
 
 在`Coq`的入门阶段，我主要是参阅的`《Software fundations》`这册书的第一卷。第一卷整体来说，对于初学者，做起来还是有些吃力的。完成进度如下：
 
